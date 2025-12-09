@@ -1,40 +1,73 @@
 const API = "https://app-py-to-dolist.onrender.com";
 
 async function loadTasks() {
-  const resp = await fetch(`${API}/tasks`);
-  const data = await resp.json();
+    const resp = await fetch(`${API}/tasks`);
+    
+    // Mejoramos el manejo de errores del frontend
+    if (!resp.ok) {
+        console.error("Fallo al cargar tareas: ", resp.status);
+        document.getElementById("list").innerHTML = "<li>Error al conectar con la API.</li>";
+        return;
+    }
 
-  const list = document.getElementById("list");
-  list.innerHTML = "";
+    const data = await resp.json();
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+    
+    data.forEach(t => {
+        let li = document.createElement("li");
+        
+        // AÑADIR CLASE DE ESTILO si la tarea está completada
+        if (t.completed) {
+            li.classList.add("completed"); 
+        }
 
-  data.forEach(t => {
-    let li = document.createElement("li");
-    li.innerHTML = `${t.content}
-      <button onclick="complete(${t.id})">Completar</button>
-      <button onclick="remove(${t.id})">Eliminar</button>`;
-    list.appendChild(li);
-  });
+        // Estructura del LI para el diseño
+        li.innerHTML = `
+            <span class="task-content">${t.content}</span>
+            <div class="task-actions">
+                <button onclick="completeTask(${t.id})">
+                    ${t.completed ? 'Pendiente' : 'Completar'}
+                </button>
+                <button onclick="removeTask(${t.id})">Eliminar</button>
+            </div>
+        `;
+        list.appendChild(li);
+    });
 }
 loadTasks();
 
 async function addTask() {
-  const content = document.getElementById("input-task").value;
-  await fetch(`${API}/tasks`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({content})
-  });
-  loadTasks();
+    const inputElement = document.getElementById("input-task");
+    const content = inputElement.value.trim();
+
+    // Validación básica en frontend
+    if (content === "") {
+        alert("La tarea no puede estar vacía.");
+        return;
+    }
+
+    await fetch(`${API}/tasks`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({content})
+    });
+    
+    inputElement.value = ""; // Limpia la caja de texto
+    loadTasks();
 }
 
-async function complete(id) {
-  await fetch(`${API}/tasks/${id}/complete`, {method:"PUT"});
-  loadTasks();
+// Renombramos la función para ser más descriptivos
+async function completeTask(id) {
+    // La API cambia el estado (PUT /tasks/id/complete)
+    await fetch(`${API}/tasks/${id}/complete`, {method:"PUT"});
+    loadTasks();
 }
 
-async function remove(id) {
-  await fetch(`${API}/tasks/${id}`, {method:"DELETE"});
-  loadTasks();
+// Renombramos la función para ser más descriptivos
+async function removeTask(id) {
+    await fetch(`${API}/tasks/${id}`, {method:"DELETE"});
+    loadTasks();
 }
 
 
